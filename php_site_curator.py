@@ -4,7 +4,7 @@ import re
 import shutil
 
 
-QUARANTINE_ROOT_DIR='/var/php_cleaning/quarantine'
+QUARANTINE_ROOT_DIR='/tmp/php_cleaning/quarantine'
 
 class Site(object):
   def __init__(self, name, directory):
@@ -65,7 +65,7 @@ class File(object):
     return len(self.content())
 
   def check_first_line(self):
-    if self.line_count() > 1:
+    if self.line_count() > 0:
       if (len(self.content()[0]) > self.SUSPICIOUS_LINE_LENGTH):
         return True
     return False
@@ -94,16 +94,28 @@ class File(object):
     myFile.write(new_content)
     myFile.close()
 
+  def convert_003_chars(self, content):
+    new_content = []
+    for line in content:
+      lines = re.sub(r'\r', '\n', line)
+    for line in lines.split('\n'):
+      new_content.append(line)
+    return new_content
+
   def content(self, encoding=None):
     with open(self.full_path(), 'r') as content_file:
       content = content_file.readlines()
+    # Some DOS files (^M) are considered as a single long line. 
+    if re.search(r'\r', content[0]):
+      content = self.convert_003_chars(content)
     if encoding:
       return [line.encode(encoding) for line in content]
     else:
       return content
 
 
-site = Site('all_sites', '/webspace')
+site = Site('all_sites', '/Users/sebadel/src/php_site_curator')
+# site = Site('all_sites', '/webspace')
 for file in site.php_files():
   if file.is_infected():
     print file.full_path()
