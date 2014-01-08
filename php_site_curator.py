@@ -106,7 +106,7 @@ class File(object):
     with open(self.full_path(), 'r') as content_file:
       content = content_file.readlines()
     # Some DOS files (^M) are considered as a single long line. 
-    if re.search(r'\r', content[0]):
+    if content and re.search(r'\r', content[0]):
       content = self.convert_003_chars(content)
     if encoding:
       return [line.encode(encoding) for line in content]
