@@ -2,6 +2,7 @@ import datetime
 import os
 import re
 import shutil
+import time
 
 
 QUARANTINE_ROOT_DIR='/tmp/php_cleaning/quarantine'
@@ -70,6 +71,17 @@ class File(object):
         return True
     return False
 
+  def log_stats(self):
+    stat = os.stat(self.full_path())
+    stats = {
+        'ctime': time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(stat.st_ctime)),
+        'mtime': time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(stat.st_ctime)),
+        'uid': stat.st_uid,
+        'gid': stat.st_gid
+    }
+    for k,v in stats.iteritems():
+      print '%s: %s' % (k,v)
+    return stats
   def is_infected(self):
     return self.check_first_line()
 
@@ -114,9 +126,10 @@ class File(object):
       return content
 
 
-site = Site('all_sites', '/Users/sebadel/src/php_site_curator')
-# site = Site('all_sites', '/webspace')
+# site = Site('all_sites', '/Users/sebadel/src/php_site_curator')
+site = Site('all_sites', '/webspace')
 for file in site.php_files():
   if file.is_infected():
     print file.full_path()
+    file.log_stats()
     file.cure()
