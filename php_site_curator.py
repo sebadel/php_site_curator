@@ -66,10 +66,18 @@ class File(object):
     return len(self.content())
 
   def check_first_line(self):
+    """ Returns True if first line is waaaaay too long."""
     if self.line_count() > 0:
       if (len(self.content()[0]) > self.SUSPICIOUS_LINE_LENGTH):
         return True
     return False
+
+  def check_double_php_ending(self):
+    """ Returns True if a line contains a double ?>?>."""
+    if re.search(r'\?>\?>', '\n'.join(self.content())):
+      return True
+    else:
+      return False
 
   def log_stats(self):
     stat = os.stat(self.full_path())
@@ -82,8 +90,9 @@ class File(object):
     for k,v in stats.iteritems():
       print '%s: %s' % (k,v)
     return stats
+
   def is_infected(self):
-    return self.check_first_line()
+    return self.check_first_line() or self.check_double_php_ending()
 
   def fix_first_line(self, line):
     fixed_line = re.sub(r'\<\?php.*?\?\>', '', line, count=1)
@@ -93,13 +102,22 @@ class File(object):
       if line != '<?php':
         print fixed_line
       return fixed_line
+  
+  def fix_double_php_ending(self, content):
+    new_content = []
+    for line in content:
+      new_content.append(re.sub(r'\?>\?>', '?>', line))
+    return ''.join(new_content)
 
   def cure(self):
     if self.quarantine:
       self.quarantine.add_file(self)
-    first_line = self.fix_first_line(self.content()[0])
-    new_content = first_line + '\n' + ''.join(self.content()[1:])
-    self.write(new_content)
+    if self.check_first_line():
+      first_line = self.fix_first_line(self.content()[0])
+      new_content = first_line + '\n' + ''.join(self.content()[1:])
+      self.write(new_content)
+    if self.check_double_php_ending():
+      self.write(self.fix_double_php_ending(self.content()))
 
   def write(self, new_content):
     myFile = open(self.full_path(), 'w')
@@ -126,8 +144,8 @@ class File(object):
       return content
 
 
-# site = Site('all_sites', '/Users/sebadel/src/php_site_curator')
-site = Site('all_sites', '/webspace')
+site = Site('all_sites', '/Users/sebadel/src/php_site_curator')
+# site = Site('all_sites', '/webspace')
 for file in site.php_files():
   if file.is_infected():
     print file.full_path()
